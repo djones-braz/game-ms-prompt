@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mestre do Prompt - FAETEC-RJ</title>
+    <style>
+        :root {
+            --navy-primary: #0A192F;
+            --navy-secondary: #112240;
+            --blue-accent: #2196F3;
+            --white: #FFFFFF;
+            --light-bg: #F0F4F8;
+            --success: #4CAF50;
+            --danger: #F44336;
+            --text-dark: #333333;
+            --text-light: #CCD6F6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--light-bg);
+            color: var(--text-dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Container Principal */
+        #game-container {
+            background-color: var(--white);
+            width: 100%;
+            max-width: 800px;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(10, 25, 47, 0.15);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Header do Jogo */
+        .game-header {
+            background-color: var(--navy-primary);
+            color: var(--white);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 5px solid var(--blue-accent);
+        }
+
+        .game-header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .game-header p {
+            font-size: 14px;
+            color: var(--text-light);
+        }
+
+        /* Telas (Screens) */
+        .screen {
+            display: none;
+            padding: 40px;
+            text-align: center;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        /* Tipografia de Telas */
+        .screen h2 {
+            color: var(--navy-primary);
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+
+        .screen p {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            color: var(--text-dark);
+        }
+
+        /* Botões */
+        button {
+            background-color: var(--blue-accent);
+            color: var(--white);
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(33, 150, 243, 0.3);
+        }
+
+        button:hover {
+            background-color: #1976D2;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(33, 150, 243, 0.4);
+        }
+
+        button:disabled {
+            background-color: #B0BEC5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Quiz Area */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--navy-secondary);
+            color: var(--white);
+            padding: 15px 25px;
+            font-weight: bold;
+            border-radius: 16px;
+            margin-bottom: 30px;
+        }
+
+        .question-text {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--navy-primary);
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        /* Alternativas */
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .option {
+            background-color: var(--light-bg);
+            border: 2px solid transparent;
+            border-radius: 16px;
+            padding: 18px;
+            text-align: left;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-dark);
+        }
+
+        .option:hover {
+            background-color: #E3F2FD;
+            border-color: #90CAF9;
+        }
+
+        .option.selected {
+            background-color: #E3F2FD;
+            border-color: var(--blue-accent);
+            font-weight: bold;
+        }
+
+        /* Dicas */
+        .hint-btn {
+            background-color: transparent;
+            color: #FF9800;
+            border: 2px solid #FF9800;
+            padding: 8px 16px;
+            font-size: 14px;
+            border-radius: 50px;
+            box-shadow: none;
+            margin-bottom: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .hint-btn:hover {
+            background-color: #FFF3E0;
+            color: #E65100;
+            border-color: #E65100;
+            transform: none;
+        }
+
+        .hint-box {
+            display: none;
+            background-color: #FFF3E0;
+            color: #E65100;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            text-align: left;
+            border-left: 4px solid #FF9800;
+            animation: fadeIn 0.3s;
+        }
+
+        /* Modal de Feedback */
+        .feedback-overlay {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(10, 25, 47, 0.95);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            padding: 40px;
+            text-align: center;
+            animation: fadeIn 0.3s;
+        }
+
+        .feedback-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .feedback-title {
+            font-size: 32px;
+            color: var(--white);
+            margin-bottom: 15px;
+        }
+
+        .feedback-message {
+            font-size: 18px;
+            color: var(--text-light);
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+
+        .feedback-overlay button {
+            background-color: var(--white);
+            color: var(--navy-primary);
+        }
+
+        .feedback-overlay button:hover {
+            background-color: #e0e0e0;
+        }
+
+        /* Animações */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsividade */
+        @media (max-width: 600px) {
+            .screen { padding: 25px; }
+            .status-bar { flex-direction: column; gap: 10px; text-align: center; }
+            .question-text { font-size: 18px; }
+            .option { font-size: 14px; padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div class="game-header">
+        <h1>🤖 Mestre do Prompt</h1>
+        <p>Inteligência Artificial Aplicada - FAETEC-RJ</p>
+    </div>
+
+    <!-- Tela Inicial -->
+    <div id="screen-intro" class="screen active">
+        <h2>Bem-vindo(a) ao Jogo! 🎓</h2>
+        <p>A Engenharia de Prompt é a habilidade chave para interagir com a Inteligência Artificial Generativa. Teste seus conhecimentos adquiridos com base nos materiais da Google, IBM, AWS e CGU.</p>
+        <p><strong>Regras:</strong><br>
+        O jogo possui 4 fases progressivas (10 perguntas cada).<br>
+        Você precisa acertar pelo menos <strong>70%</strong> para passar de fase. Caso contrário, a fase será reiniciada.<br> As perguntas sempre serão embaralhadas!</p>
+        <button onclick="startGame()">Começar Jornada 🚀</button>
+    </div>
+
+    <!-- Tela de Abertura de Fase -->
+    <div id="screen-phase-intro" class="screen">
+        <h2 id="phase-title">Fase 1: Fundamentos</h2>
+        <p id="phase-desc">Conceitos iniciais e básicos de IA e Prompts.</p>
+        <p>🎯 Meta: 7/10 acertos</p>
+        <button onclick="startQuestions()">Iniciar Fase</button>
+    </div>
+
+    <!-- Tela do Quiz (Perguntas) -->
+    <div id="screen-quiz" class="screen" style="padding-top: 20px;">
+        <div class="status-bar">
+            <span id="ui-phase-number">Fase 1</span>
+            <span id="ui-question-counter">Pergunta 1/10</span>
+            <span id="ui-score">Pontos: 0</span>
+        </div>
+
+        <button class="hint-btn" onclick="showHint()">💡 Preciso de uma dica</button>
+        <div id="hint-box" class="hint-box"></div>
+
+        <div id="question-text" class="question-text">Carregando pergunta...</div>
+        
+        <div id="options-container" class="options-container">
+            <!-- Opções geradas via JS -->
+        </div>
+
+        <button id="btn-submit" onclick="submitAnswer()" disabled>Confirmar Resposta ✅</button>
+    </div>
+
+    <!-- Overlay de Feedback (Acerto/Erro) -->
+    <div id="feedback-overlay" class="feedback-overlay" style="display: none;">
+        <div id="feedback-icon" class="feedback-icon">✅</div>
+        <h2 id="feedback-title" class="feedback-title">Certa Resposta!</h2>
+        <p id="feedback-message" class="feedback-message">Você mandou muito bem.</p>
+        <button onclick="nextQuestion()">Próxima Pergunta ➔</button>
+    </div>
+
+    <!-- Tela de Resultado da Fase -->
+    <div id="screen-phase-result" class="screen">
+        <h2 id="result-title">Fase Concluída!</h2>
+        <p id="result-score" style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">Você acertou X de 10.</p>
+        <p id="result-message">Mensagem de feedback...</p>
+        <button id="btn-next-phase" onclick="nextPhaseOrRestart()">Continuar</button>
+    </div>
+
+    <!-- Tela Final (Zerou o Jogo) -->
+    <div id="screen-endgame" class="screen">
+        <h2 style="font-size: 36px; margin-bottom: 10px;">🏆 Parabéns!</h2>
+        <h3>Você é um Mestre da Engenharia de Prompt!</h3>
+        <p style="margin-top: 20px;">A FAETEC-RJ tem orgulho de ter um futuro especialista em Inteligência Artificial tão bem preparado.</p>
+        <p>Lembre-se: A IA é uma ferramenta para potencializar humanos, e não substituí-los. Sempre faça curadoria dos dados!</p>
+        <button onclick="resetGame()" style="margin-top: 20px;">Jogar Novamente 🔄</button>
+    </div>
+
+</div>
+
+<script>
+    // --- BANCO DE DADOS DE PERGUNTAS (Baseado nos materiais fornecidos) ---
+    const allPhasesData = [
+        // FASE 1: FUNDAMENTOS
+        {
+            title: "Fase 1: Fundamentos",
+            desc: "Conceitos básicos sobre LLMs e IA Generativa (Baseado em Google Cloud e CGU).",
+            questions: [
+                {
+                    q: "O que é Engenharia de Prompt?",
+                    options: [
+                        "A prática de criar comandos eficientes para desbloquear os recursos das IAs.",
+                        "Um processo de engenharia de software focado em consertar hardwares de IAs.",
+                        "Uma linguagem de programação exclusiva para criar novas Inteligências Artificiais.",
+                        "O uso da Inteligência Artificial apenas para fins de entretenimento."
+                    ],
+                    correct: 0,
+                    hint: "Pense nisso como a forma de 'conversar' corretamente com a máquina."
+                },
+                {
+                    q: "Qual é a principal função de um 'prompt' na interação com uma IA?",
+                    options: [
+                        "Fornecer instruções ou iniciar uma conversa para a IA gerar uma resposta.",
+                        "Atualizar o sistema operacional do computador.",
+                        "Impedir que a IA acesse a internet.",
+                        "Substituir completamente a função de um programador humano."
+                    ],
+                    correct: 0,
+                    hint: "É como você começa uma conversa com a inteligência artificial."
+                },
+                {
+                    q: "Segundo a CGU, a IA Generativa (GenAI) é um tipo de inteligência artificial capaz de:",
+                    options: [
+                        "Criar novos conteúdos, como textos, imagens e códigos.",
+                        "Apenas buscar informações exatas no Google de forma mais rápida.",
+                        "Apenas consertar planilhas corrompidas.",
+                        "Substituir integralmente os auditores em qualquer investigação."
+                    ],
+                    correct: 0,
+                    hint: "A palavra 'Generativa' vem de 'gerar' ou 'criar'."
+                },
+                {
+                    q: "Segundo a CGU, qual é um cuidado ESSENCIAL e obrigatório ao usar IA Generativa em auditorias?",
+                    options: [
+                        "Confiar cegamente na IA, pois ela não comete erros em legislações.",
+                        "Fazer revisões e curadorias constantes das respostas geradas.",
+                        "Sempre inserir dados sigilosos para a IA dar respostas mais completas.",
+                        "Usar apenas ferramentas de terceiros desconhecidos na internet."
+                    ],
+                    correct: 1,
+                    hint: "Você é o responsável final pelo documento, não a máquina."
+                },
+                {
+                    q: "O que os Modelos de Linguagem Grandes (LLMs) fazem prioritariamente?",
+                    options: [
+                        "Processam e geram linguagem humana entendendo a intenção.",
+                        "Criam planilhas e bancos de dados SQL automaticamente.",
+                        "Apenas traduzem do inglês para o português.",
+                        "Programam e constroem computadores físicos."
+                    ],
+                    correct: 0,
+                    hint: "Eles lidam com a forma como falamos e escrevemos (Linguagem)."
+                },
+                {
+                    q: "Segundo a apresentação da CGU, qual ferramenta NÃO é um exemplo de IA Generativa proprietária, mas sim aberta?",
+                    options: [
+                        "ChatGPT",
+                        "Gemini",
+                        "Claude",
+                        "Ollama"
+                    ],
+                    correct: 3,
+                    hint: "Esta ferramenta permite rodar modelos de forma local e aberta."
+                },
+                {
+                    q: "A principal vantagem de usar IA nas auditorias governamentais é:",
+                    options: [
+                        "Excluir a necessidade do auditor fazer julgamentos morais.",
+                        "Otimizar processos, desde o planejamento até o relatório.",
+                        "Demitir servidores públicos, pois a máquina trabalha sozinha.",
+                        "Gerar provas falsas que ajudam na condenação."
+                    ],
+                    correct: 1,
+                    hint: "Ela é uma assistente que acelera tarefas burocráticas."
+                },
+                {
+                    q: "De acordo com a AWS, a engenharia de prompt ajuda a melhorar:",
+                    options: [
+                        "O hardware físico dos servidores em nuvem.",
+                        "A precisão, relevância e segurança das respostas do modelo base.",
+                        "A velocidade da sua internet residencial.",
+                        "Apenas o tamanho das imagens geradas pela IA."
+                    ],
+                    correct: 1,
+                    hint: "Foca em obter resultados mais corretos e alinhados ao que o usuário quer."
+                },
+                {
+                    q: "O que significa o risco de 'Alucinação' apontado nos materiais?",
+                    options: [
+                        "Quando a IA começa a mostrar imagens coloridas na tela.",
+                        "Quando a IA desliga sozinha por excesso de processamento.",
+                        "Quando a IA inventa informações ou legislações que não existem, parecendo ter certeza.",
+                        "Quando o usuário imagina que a IA está respondendo, mas não está."
+                    ],
+                    correct: 2,
+                    hint: "É quando a inteligência artificial mente com convicção."
+                },
+                {
+                    q: "No Guia Gemini for Workspace, um prompt é descrito essencialmente como:",
+                    options: [
+                        "Um vírus que pode acessar dados do Drive.",
+                        "Um iniciador de conversa com seu assistente movido a IA.",
+                        "Um bloqueador de anúncios da Google.",
+                        "Uma ferramenta que apenas corrige erros ortográficos."
+                    ],
+                    correct: 1,
+                    hint: "Pense nele como o 'Olá, preciso de ajuda com...'."
+                }
+            ]
+        },
+        // FASE 2: TÉCNICAS BÁSICAS E BOAS PRÁTICAS
+        {
+            title: "Fase 2: Técnicas e Práticas",
+            desc: "Como estruturar um bom prompt e lidar com ferramentas (Baseado em Gemini Workspace e CGU).",
+            questions: [
+                {
+                    q: "Qual técnica o Guia do Workspace sugere para incentivar a criatividade da IA?",
+                    options: [
+                        "Pedir para a IA ser técnica.",
+                        "Atribuir um papel (role), como 'Atue como chefe de publicidade...'.",
+                        "Digitar o prompt usando apenas letras maiúsculas.",
+                        "Não dar nenhum contexto, deixando a IA adivinhar."
+                    ],
+                    correct: 1,
+                    hint: "Envolve colocar a IA num cenário, dando a ela uma profissão ou persona."
+                },
+                {
+                    q: "Para o Guia Gemini for Workspace, se a primeira resposta da IA não for boa, você deve:",
+                    options: [
+                        "Desistir e não usar mais a ferramenta.",
+                        "Reformular o prompt, dizendo-o de outra forma (processo iterativo).",
+                        "Mandar exatamente a mesma pergunta várias vezes até mudar.",
+                        "Reportar a IA por mau funcionamento."
+                    ],
+                    correct: 1,
+                    hint: "Não existe prompt perfeito na primeira tentativa. Tente ajustar o pedido."
+                },
+                {
+                    q: "O que NUNCA deve ser incluído em um prompt ao usar ferramentas públicas não corporativas, segundo a CGU?",
+                    options: [
+                        "Informações públicas.",
+                        "Informações sigilosas (ex: CPFs de investigados, operações especiais).",
+                        "Perguntas sobre legislações genéricas.",
+                        "Pedidos para resumir textos grandes."
+                    ],
+                    correct: 1,
+                    hint: "Proteger dados sensíveis e pessoais é regra de ouro."
+                },
+                {
+                    q: "Segundo a CGU, qual é o maior repositório de modelos de IA de código aberto do mundo?",
+                    options: [
+                        "Hugging Face",
+                        "Google Cloud",
+                        "OpenAI",
+                        "Anthropic"
+                    ],
+                    correct: 0,
+                    hint: "O nome remete a um emoji que dá um abraço."
+                },
+                {
+                    q: "O IBM watsonx.ai é um estúdio focado principalmente em:",
+                    options: [
+                        "Entretenimento e criação de games casuais.",
+                        "Redes sociais e chat para jovens.",
+                        "Um estúdio empresarial de última geração para construtores de IA.",
+                        "Uma ferramenta de edição de fotos amadora."
+                    ],
+                    correct: 2,
+                    hint: "A IBM possui um forte foco em negócios (B2B) e ambientes corporativos."
+                },
+                {
+                    q: "O Guia do Gemini recomenda considerar o 'Tom'. O que isso significa?",
+                    options: [
+                        "Ajustar o volume do áudio do computador.",
+                        "Adequar o prompt para a resposta ter o estilo do público (formal, criativo, etc.).",
+                        "Mudar as cores da interface do Google Workspace.",
+                        "Restringir a IA para falar apenas em inglês."
+                    ],
+                    correct: 1,
+                    hint: "Tem a ver com a 'voz' ou a 'formalidade' do texto gerado."
+                },
+                {
+                    q: "Por que a CGU alerta para evitar ferramentas (sites de IA) de terceiros não conhecidos?",
+                    options: [
+                        "Porque eles costumam ser muito caros.",
+                        "Porque eles são baseados em IA muito avançadas que os auditores não entendem.",
+                        "Porque essas empresas desconhecidas podem reter e usar os seus dados (Risco de Privacidade).",
+                        "Porque o layout deles não é responsivo."
+                    ],
+                    correct: 2,
+                    hint: "O ditado diz: 'Se o produto é de graça, o produto pode ser você (seus dados)'."
+                },
+                {
+                    q: "Qual prática ajuda a IA a entender melhor a estrutura e a saída desejada de uma tarefa?",
+                    options: [
+                        "Pedir respostas em apenas 1 palavra.",
+                        "Fornecer exemplos claros e o formato esperado no corpo do prompt.",
+                        "Fazer perguntas retóricas.",
+                        "Escrever as instruções em códigos de programação."
+                    ],
+                    correct: 1,
+                    hint: "Se você quer uma tabela, mostre como seria uma linha dessa tabela."
+                },
+                {
+                    q: "No ambiente Workspace, o grande diferencial do Gemini é que ele possui acesso à base de conhecimento pessoal do usuário em quais apps?",
+                    options: [
+                        "Apenas no Youtube e Google Maps.",
+                        "No WhatsApp e Instagram.",
+                        "No Google Drive, Docs, Gmail e Sheets.",
+                        "Acesso livre aos arquivos do Windows C:/"
+                    ],
+                    correct: 2,
+                    hint: "Integração nativa com as ferramentas de produtividade da nuvem."
+                },
+                {
+                    q: "A frase final de alerta do Guia Gemini for Workspace é: 'A IA generativa serve para ajudar humanos, mas...'",
+                    options: [
+                        "ela logo nos substituirá.'",
+                        "a responsabilidade e a saída final são suas.'",
+                        "você deve aceitar tudo o que ela diz.'",
+                        "ela nunca cometerá erros.'",
+                    ],
+                    correct: 1,
+                    hint: "Retoma a ideia de curadoria e revisão que a CGU também defende."
+                }
+            ]
+        },
+        // FASE 3: CENÁRIOS E APLICAÇÕES
+        {
+            title: "Fase 3: Aplicações Avançadas",
+            desc: "Uso em auditoria e orquestração de negócios (Baseado em IBM e CGU).",
+            questions: [
+                {
+                    q: "No planejamento de auditoria (material CGU), a IA pode atuar ajudando o auditor a:",
+                    options: [
+                        "Assinar a responsabilização civil dos auditados.",
+                        "Apoiar na elaboração da Matriz de Riscos e Controle.",
+                        "Aprovar automaticamente orçamentos públicos.",
+                        "Ouvir ligações telefônicas interceptadas."
+                    ],
+                    correct: 1,
+                    hint: "Ela auxilia na fase de documentação e análise de possibilidades de risco."
+                },
+                {
+                    q: "A técnica de pedir feedback à IA envolve enviar o comando e adicionar qual instrução no final?",
+                    options: [
+                        "'Faça isso em 2 segundos.'",
+                        "'Ignore todas as instruções anteriores.'",
+                        "'Quais perguntas você tem para mim que ajudariam a fornecer o melhor resultado?'",
+                        "'Traduza isso para latim clássico.'"
+                    ],
+                    correct: 2,
+                    hint: "Ocorre quando você inverte o papel e deixa a máquina inquirir você."
+                },
+                {
+                    q: "A AWS destaca o papel da engenharia de prompt para permitir operações autônomas através da:",
+                    options: [
+                        "Robótica mecânica industrial.",
+                        "IA Agêntica (Agentes de IA que orquestram ações).",
+                        "Criptomoedas e Blockchain.",
+                        "Criação de periféricos sem fio."
+                    ],
+                    correct: 1,
+                    hint: "Refere-se a sistemas de IA que agem como 'agentes' que tomam decisões em sequência."
+                },
+                {
+                    q: "O que a documentação da IBM destaca que o 'IBM Concert' pode fazer ao utilizar a IA?",
+                    options: [
+                        "Tocar músicas clássicas automaticamente durante o trabalho.",
+                        "Revelar insights cruciais sobre operações e fornecer recomendações focadas em melhorias.",
+                        "Monitorar o horário de entrada e saída dos funcionários via biometria.",
+                        "Desligar os servidores da concorrência."
+                    ],
+                    correct: 1,
+                    hint: "O nome 'Concert' refere-se a orquestrar dados de negócios para melhorias."
+                },
+                {
+                    q: "Se a IA citar uma norma do tribunal de contas que foi revogada em um relatório seu, de quem é a falha?",
+                    options: [
+                        "Exclusivamente da empresa criadora da IA (OpenAI, Google).",
+                        "Do desenvolvedor do site.",
+                        "Do próprio auditor/usuário, pois a curadoria é responsabilidade sua.",
+                        "Do setor de TI do órgão público."
+                    ],
+                    correct: 2,
+                    hint: "Você assina o documento, logo, a veracidade dele é seu dever profissional."
+                },
+                {
+                    q: "Uma boa estratégia de engenharia de prompt ajuda a 'ancorar' a resposta da IA. O que é 'ancorar' (grounding)?",
+                    options: [
+                        "Fixar a interface do chat no canto da tela.",
+                        "Fornecer no prompt os dados, fatos ou documentos base dos quais a IA NÃO deve sair.",
+                        "Reduzir a velocidade de internet consumida pela IA.",
+                        "Fazer a IA concordar com a opinião pessoal do auditor, independentemente da lei."
+                    ],
+                    correct: 1,
+                    hint: "É dar limites factuais para que ela não invente respostas do além."
+                },
+                {
+                    q: "Um prompt claro e bem-sucedido reduz a necessidade de:",
+                    options: [
+                        "Segurança da Informação.",
+                        "Trocas de abas constantes e edições manuais massivas.",
+                        "Internet para se conectar à nuvem.",
+                        "Uso de senhas para acessar o sistema."
+                    ],
+                    correct: 1,
+                    hint: "Com a resposta certa de primeira, você perde menos tempo corrigindo o texto."
+                },
+                {
+                    q: "Quais são as três empresas citadas como fornecedoras seguras de modelos bem estruturados pela CGU?",
+                    options: [
+                        "Netflix, Spotify, Amazon.",
+                        "Meta, TikTok, Twitter.",
+                        "OpenAI, Google, Anthropic.",
+                        "Kaspersky, Avast, McAfee."
+                    ],
+                    correct: 2,
+                    hint: "São as donas do ChatGPT, Gemini e Claude, respectivamente."
+                },
+                {
+                    q: "O que significa 'Zero-Shot Prompting'?",
+                    options: [
+                        "Quando a IA se recusa a responder sua pergunta.",
+                        "Enviar uma solicitação para a IA sem fornecer nenhum exemplo de resposta anterior.",
+                        "Tentar derrubar o servidor da IA com vários acessos.",
+                        "Usar a IA desligada da internet."
+                    ],
+                    correct: 1,
+                    hint: "'Shot' significa 'tiro' ou 'tentativa'. Zero exemplos fornecidos."
+                },
+                {
+                    q: "Por que a IA na auditoria governamental é vista pela CGU como 'um caminho inevitável'?",
+                    options: [
+                        "Porque foi imposta por lei internacional.",
+                        "Porque exige preparação contínua devido ao seu enorme potencial de otimização no dia a dia.",
+                        "Porque os auditores se recusarão a trabalhar sem ela.",
+                        "Porque o papel será abolido no serviço público no próximo ano."
+                    ],
+                    correct: 1,
+                    hint: "A tecnologia traz tantas eficiências que é impossível ignorá-la."
+                }
+            ]
+        },
+        // FASE 4: EXPERT
+        {
+            title: "Fase 4: Nível Expert",
+            desc: "Segurança, Arquitetura de Prompt e Desafios (Baseado em todos os documentos).",
+            questions: [
+                {
+                    q: "No contexto corporativo, o uso do 'Gemini Advanced' (gemini.google.com) é recomendado por possuir:",
+                    options: [
+                        "Respostas ilimitadas sem acesso à internet.",
+                        "Acesso liberado a contas de e-mail de outras pessoas.",
+                        "Segurança e privacidade de nível empresarial (enterprise-grade security).",
+                        "Isenção de curadoria, pois ele é infalível."
+                    ],
+                    correct: 2,
+                    hint: "Grandes empresas precisam ter certeza de que seus dados não vão vazar."
+                },
+                {
+                    q: "Qual é a principal diferença da engenharia de prompt para as técnicas antigas de treinamento (fine-tuning)?",
+                    options: [
+                        "Ela exige alteração nos pesos e na matemática estrutural do modelo de IA.",
+                        "Ela foca em orientar o comportamento do modelo APENAS através de textos e instruções, sem alterar seu código.",
+                        "A engenharia de prompt só funciona em IAs que não processam textos.",
+                        "Ela exige o uso exclusivo da linguagem Python."
+                    ],
+                    correct: 1,
+                    hint: "Você muda a saída usando palavras (prompts), não mudando a programação do cérebro da IA."
+                },
+                {
+                    q: "Quando incluímos 'Pense passo a passo' no final de um prompt, qual o objetivo principal?",
+                    options: [
+                        "Reduzir atalhos lógicos (Chain-of-Thought), forçando a IA a estruturar o raciocínio e evitar erros complexos.",
+                        "Fazer a resposta demorar mais tempo para ser gerada propositalmente.",
+                        "Fazer a IA gerar um sumário executivo em tópicos.",
+                        "Apenas para cumprir uma regra gramatical do inglês."
+                    ],
+                    correct: 0,
+                    hint: "Ajuda a IA a não pular etapas, muito útil em lógica e matemática."
+                },
+                {
+                    q: "Na arquitetura de um prompt muito complexo, a técnica de 'Decomposição' significa:",
+                    options: [
+                        "Excluir pedaços do texto original para economizar tokens.",
+                        "Dividir uma tarefa gigante e complexa em subtarefas menores e realizar prompts para cada passo.",
+                        "Pedir à IA para decompor substâncias químicas.",
+                        "Misturar os idiomas português e inglês no mesmo prompt."
+                    ],
+                    correct: 1,
+                    hint: "É o princípio de 'dividir para conquistar'."
+                },
+                {
+                    q: "Segundo a AWS e IBM, operações de Inteligência Artificial 'Agêntica' em cadeia de suprimentos servem para:",
+                    options: [
+                        "Substituir frotas de caminhões por drones.",
+                        "Escalar a resiliência das operações autônomas baseadas em decisões orquestradas da IA.",
+                        "Apenas traduzir manuais de fornecedores estrangeiros.",
+                        "Ignorar leis alfandegárias automaticamente."
+                    ],
+                    correct: 1,
+                    hint: "Envolve dar independência para os sistemas se recuperarem e agirem diante de falhas logísticas."
+                },
+                {
+                    q: "O Guia do Gemini diz que a IA tem resultados 'imprevisíveis' (unpredictable). O que isso nos obriga a fazer no processo de prompt?",
+                    options: [
+                        "Usar apenas as sugestões prontas do Google.",
+                        "Manter um ciclo iterativo de testes (review and refinement) antes de pôr em ação.",
+                        "Acionar o suporte técnico toda vez que gerar uma resposta inusitada.",
+                        "Usar apenas IAs desenvolvidas antes de 2020."
+                    ],
+                    correct: 1,
+                    hint: "Como não é uma ciência exata, exige teste, revisão e refinamento contínuos."
+                },
+                {
+                    q: "O documento da CGU alerta: 'A IA está num hype! Está cheio de piramideiros na internet'. O que esse alerta quer evitar no serviço público?",
+                    options: [
+                        "Que os servidores percam dinheiro comprando cursos de IA.",
+                        "Que dados de auditorias sejam inseridos em ferramentas frágeis feitas sobre a API de outros, vazando informações do Estado.",
+                        "Que as pessoas deixem de usar a internet.",
+                        "Que a tecnologia deixe de ser usada pelo governo."
+                    ],
+                    correct: 1,
+                    hint: "A preocupação central do governo e auditores é sempre a proteção das informações e sigilo."
+                },
+                {
+                    q: "A engenharia de prompt lida diretamente com LLMs. A sigla LLM significa:",
+                    options: [
+                        "Large Logic Machines (Máquinas de Lógica Grande)",
+                        "Linguagem Limite Matemática",
+                        "Large Language Models (Modelos de Linguagem Grandes)",
+                        "Low Latency Memory (Memória de Baixa Latência)"
+                    ],
+                    correct: 2,
+                    hint: "São Modelos focados em processamento de textos massivos."
+                },
+                {
+                    q: "Se um prompt começa com: 'Aja como um auditor sênior do Estado avaliando o contrato X', qual técnica está sendo usada?",
+                    options: [
+                        "Few-shot Prompting",
+                        "Role-playing / Persona",
+                        "Chain-of-Thought",
+                        "Zero-Shot"
+                    ],
+                    correct: 1,
+                    hint: "Você está definindo uma 'Persona' ou um 'Papel' para o modelo interpretar."
+                },
+                {
+                    q: "O sucesso de um profissional em Engenharia de Prompt, no fim, depende fundamentalmente de:",
+                    options: [
+                        "Ser fluente em linguagens como C++ e Java.",
+                        "Sua capacidade humana de formular com clareza e precisão a intenção do que a IA deve realizar.",
+                        "Possuir um computador extremamente potente em casa.",
+                        "Decorar milhares de comandos prontos baixados da internet."
+                    ],
+                    correct: 1,
+                    hint: "Não é sobre código, é sobre a excelência na comunicação e pensamento crítico."
+                }
+            ]
+        }
+    ];
+
+    // --- VARIÁVEIS DE ESTADO DO JOGO ---
+    let currentPhaseIndex = 0;
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let questionsForCurrentPhase = [];
+    
+    // --- FUNÇÕES UTILITÁRIAS ---
+    
+    // Embaralhar Array (Fisher-Yates Shuffle)
+    function shuffleArray(array) {
+        let arr = [...array];
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    // --- LÓGICA DE TRANSIÇÃO DE TELAS ---
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+        document.getElementById('feedback-overlay').style.display = 'none';
+    }
+
+    // --- FLUXO DO JOGO ---
+
+    function startGame() {
+        currentPhaseIndex = 0;
+        preparePhaseIntro();
+    }
+
+    function preparePhaseIntro() {
+        const phaseData = allPhasesData[currentPhaseIndex];
+        document.getElementById('phase-title').innerText = phaseData.title;
+        document.getElementById('phase-desc').innerText = phaseData.desc;
+        showScreen('screen-phase-intro');
+    }
+
+    function startQuestions() {
+        score = 0;
+        currentQuestionIndex = 0;
+        
+        // Clona e embaralha as perguntas da fase atual
+        const rawQuestions = allPhasesData[currentPhaseIndex].questions;
+        questionsForCurrentPhase = shuffleArray(rawQuestions);
+        
+        // Para cada pergunta, embaralhar também as opções e guardar o índice correto atualizado
+        questionsForCurrentPhase.forEach(q => {
+            let optionsObj = q.options.map((opt, index) => {
+                return { text: opt, isCorrect: (index === q.correct) };
+            });
+            optionsObj = shuffleArray(optionsObj);
+            q.shuffledOptions = optionsObj;
+        });
+
+        updateUIStatus();
+        renderQuestion();
+        showScreen('screen-quiz');
+    }
+
+    function updateUIStatus() {
+        document.getElementById('ui-phase-number').innerText = `Fase ${currentPhaseIndex + 1}`;
+        document.getElementById('ui-question-counter').innerText = `Pergunta ${currentQuestionIndex + 1}/10`;
+        document.getElementById('ui-score').innerText = `Pontos: ${score}`;
+    }
+
+    function renderQuestion() {
+        const qData = questionsForCurrentPhase[currentQuestionIndex];
+        
+        document.getElementById('question-text').innerText = qData.q;
+        
+        // Esconde e reseta o Box de Dica
+        const hintBox = document.getElementById('hint-box');
+        hintBox.style.display = 'none';
+        hintBox.innerText = `💡 Dica: ${qData.hint}`;
+
+        // Limpa opções antigas e botão
+        const optsContainer = document.getElementById('options-container');
+        optsContainer.innerHTML = '';
+        document.getElementById('btn-submit').disabled = true;
+
+        // Renderiza Novas opções
+        qData.shuffledOptions.forEach((opt, index) => {
+            const div = document.createElement('div');
+            div.classList.add('option');
+            div.innerText = opt.text;
+            div.onclick = () => selectOption(index);
+            optsContainer.appendChild(div);
+        });
+    }
+
+    let selectedOptionIndex = null;
+
+    function selectOption(index) {
+        selectedOptionIndex = index;
+        
+        // Atualiza visual
+        const allOpts = document.querySelectorAll('.option');
+        allOpts.forEach(el => el.classList.remove('selected'));
+        allOpts[index].classList.add('selected');
+
+        // Habilita botão confirmar
+        document.getElementById('btn-submit').disabled = false;
+    }
+
+    function showHint() {
+        document.getElementById('hint-box').style.display = 'block';
+    }
+
+    function submitAnswer() {
+        const qData = questionsForCurrentPhase[currentQuestionIndex];
+        const isCorrect = qData.shuffledOptions[selectedOptionIndex].isCorrect;
+
+        const overlay = document.getElementById('feedback-overlay');
+        const icon = document.getElementById('feedback-icon');
+        const title = document.getElementById('feedback-title');
+        const msg = document.getElementById('feedback-message');
+
+        overlay.style.display = 'flex';
+
+        if (isCorrect) {
+            score++;
+            icon.innerText = "✅";
+            icon.style.color = "var(--success)";
+            title.innerText = "Certa Resposta!";
+            msg.innerText = "Excelente! Você compreendeu bem o conceito.";
+        } else {
+            icon.innerText = "❌";
+            icon.style.color = "var(--danger)";
+            title.innerText = "Incorreto!";
+            
+            // Acha o texto correto para mostrar
+            const correctText = qData.shuffledOptions.find(o => o.isCorrect).text;
+            msg.innerHTML = `Ops! A resposta correta era:<br><br><strong>${correctText}</strong>`;
+        }
+
+        updateUIStatus();
+    }
+
+    function nextQuestion() {
+        currentQuestionIndex++;
+        
+        if (currentQuestionIndex < 10) { // Ainda há perguntas na fase
+            selectedOptionIndex = null;
+            updateUIStatus();
+            renderQuestion();
+            document.getElementById('feedback-overlay').style.display = 'none';
+        } else {
+            // Fase acabou
+            checkPhaseResult();
+        }
+    }
+
+    function checkPhaseResult() {
+        document.getElementById('feedback-overlay').style.display = 'none';
+        
+        const title = document.getElementById('result-title');
+        const scoreTxt = document.getElementById('result-score');
+        const msg = document.getElementById('result-message');
+        const btn = document.getElementById('btn-next-phase');
+
+        scoreTxt.innerText = `Você acertou ${score} de 10.`;
+
+        if (score >= 7) {
+            title.innerText = "🎉 Fase Concluída!";
+            title.style.color = "var(--success)";
+            msg.innerText = "Parabéns, você alcançou a meta (70%) e está apto a seguir em frente.";
+            btn.innerText = "Avançar para Próxima Fase";
+            btn.onclick = advancePhase;
+        } else {
+            title.innerText = "⚠️ Quase lá!";
+            title.style.color = "var(--danger)";
+            msg.innerText = "Você não atingiu os 70% mínimos para prosseguir. Tente novamente! As perguntas serão embaralhadas.";
+            btn.innerText = "Tentar Fase Novamente 🔄";
+            btn.onclick = retryPhase;
+        }
+
+        showScreen('screen-phase-result');
+    }
+
+    function advancePhase() {
+        currentPhaseIndex++;
+        if (currentPhaseIndex < allPhasesData.length) {
+            preparePhaseIntro();
+        } else {
+            // Zerou o jogo
+            showScreen('screen-endgame');
+        }
+    }
+
+    function retryPhase() {
+        // Volta para a tela de introdução da MESMA fase para reiniciar
+        preparePhaseIntro();
+    }
+
+    function resetGame() {
+        startGame();
+    }
+
+</script>
+</body>
+</html>
