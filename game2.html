@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cruzadinha IA - FAETEC RJ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            color: #0f172a;
+        }
+
+        .bg-navy { background-color: #0f172a; } /* Azul Marinho FAETEC */
+        .text-navy { color: #0f172a; }
+        .border-navy { border-color: #0f172a; }
+
+        .crossword-container {
+            display: grid;
+            gap: 2px;
+            background-color: #cbd5e1;
+            padding: 4px;
+            border-radius: 8px;
+            overflow: auto;
+            max-width: 100%;
+        }
+
+        .cell {
+            width: 35px;
+            height: 35px;
+            background-color: white;
+            border: 1px solid #94a3b8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            color: #0f172a;
+            position: relative;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .cell.empty {
+            background-color: transparent;
+            border: none;
+        }
+
+        .cell.revealed {
+            background-color: #e0f2fe;
+            border-color: #0284c7;
+            color: #0284c7;
+        }
+
+        .cell-number {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            font-size: 0.5rem;
+            color: #64748b;
+        }
+
+        /* Animação de Feedback */
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { height: 8px; width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #0f172a; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #1e293b; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-navy text-white p-4 shadow-md">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-robot text-3xl text-blue-300"></i>
+                <div>
+                    <h1 class="text-xl font-bold uppercase tracking-wide">Curso - Inteligência Artificial Aplicada</h1>
+                    <p class="text-xs text-blue-200">FAETEC-RJ • Unidade Cachoeiras de Macacu - Teste seus conhecimentos básicos adquiridos com base nos materiais da <a href="https://ai.google.dev/gemini-api/docs/prompting-strategies?hl=pt-br" title="Google" target="_blank">Google</a>, <a href="https://developers.openai.com/api/docs/guides/prompt-engineering" title="OpenAI" target="_blank">OpenAI</a>, <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents" title="Anthropic" target="_blank">Anthropic</a> <a href="https://help.openai.com/pt-br/articles/6654000-best-practices-for-prompt-engineering-with-the-openai-api" title="OpenAi" target="_blank">OpenAI</a>.</br>
+                    Projeto de <strong>Gameficação Educacional</strong>, desenvolvido pelo <strong><a href="http://lattes.cnpq.br/2193402175919232" title="Prof Djones Braz" target="_blank">Professor Djones Braz de Araujo Costa.</a></strong></p>
+                </div>
+            </div>
+            <div class="hidden sm:flex bg-white text-navy px-4 py-1 rounded-full font-bold shadow">
+                Pontos: <span id="scoreDisplay" class="ml-2 text-blue-600">0</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl mx-auto w-full p-4 flex flex-col lg:flex-row gap-6 relative" id="gameScreen">
+        
+        <!-- Left: Crossword Map -->
+        <section class="w-full lg:w-3/5 bg-white p-6 rounded-2xl shadow-lg border border-slate-200 flex flex-col items-center">
+            <h2 class="text-xl font-bold text-navy mb-4 flex items-center gap-2">
+                <i class="fas fa-map"></i> Mapa do Conhecimento
+            </h2>
+            <div class="w-full overflow-auto flex justify-center pb-4">
+                <div id="crosswordGrid" class="crossword-container">
+                    <!-- Grid generated by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Right: Interaction Panel -->
+        <section class="w-full lg:w-2/5 flex flex-col gap-4">
+            <!-- Question Box -->
+            <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-200 flex-grow flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full uppercase" id="questionCounter">Questão 1/10</span>
+                    <span class="text-sm font-semibold text-slate-500"><i class="fas fa-lightbulb text-yellow-500"></i> Dica: <span id="letterCount">0</span> letras</span>
+                </div>
+                
+                <h3 class="text-lg font-semibold mb-6 text-slate-800 leading-relaxed" id="questionText">
+                    Carregando pergunta...
+                </h3>
+
+                <div class="mt-auto">
+                    <form id="answerForm" class="flex flex-col gap-3">
+                        <input type="text" id="answerInput" autocomplete="off" placeholder="Digite sua resposta aqui..." 
+                            class="w-full p-4 border-2 border-slate-300 rounded-xl focus:outline-none focus:border-navy text-lg uppercase transition-colors" required>
+                        <button type="submit" class="w-full bg-navy hover:bg-blue-800 text-white font-bold py-4 rounded-xl shadow-md transition-colors flex justify-center items-center gap-2">
+                            <i class="fas fa-paper-plane"></i> Enviar Resposta
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Mobile Score (Visible only on small screens) -->
+            <div class="sm:hidden bg-white p-4 rounded-2xl shadow-lg border border-slate-200 text-center font-bold text-lg text-navy">
+                Pontos Acumulados: <span id="scoreDisplayMobile" class="text-blue-600">0</span>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Feedback Modal (Overlay) -->
+    <div id="feedbackModal" class="fixed inset-0 bg-slate-900 bg-opacity-50 hidden z-50 flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white rounded-3xl p-8 max-w-sm w-full mx-4 shadow-2xl text-center transform transition-all animate-pop">
+            <div id="feedbackIcon" class="text-6xl mb-4">✅</div>
+            <h2 id="feedbackTitle" class="text-2xl font-bold mb-2 text-navy">Correto!</h2>
+            <p id="feedbackMessage" class="text-slate-600 mb-6">Você ganhou +10 pontos.</p>
+            <button id="nextBtn" class="w-full bg-navy text-white font-bold py-3 rounded-xl hover:bg-blue-800 transition-colors">
+                Continuar <i class="fas fa-arrow-right ml-2"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- End Game Screen -->
+    <div id="endScreen" class="hidden min-h-screen p-4 flex items-center justify-center absolute inset-0 bg-slate-50 z-40">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-2xl w-full text-center border border-slate-200 animate-pop">
+            <div id="endEmoji" class="text-7xl mb-4">🏆</div>
+            <h2 id="endTitle" class="text-3xl font-bold text-navy mb-2">Desempenho Final</h2>
+            <p id="endMessage" class="text-lg text-slate-600 mb-6 font-medium">Analisando seus resultados...</p>
+            
+            <div class="w-full max-w-md mx-auto mb-8 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <canvas id="resultsChart" width="400" height="250"></canvas>
+            </div>
+
+            <button onclick="initGame()" class="bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold py-4 px-8 rounded-xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2 mx-auto">
+                <i class="fas fa-sync-alt"></i> Jogar Novamente com Novas Palavras
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- BANCO DE DADOS (Baseado nos textos da Anthropic, OpenAI e Gemini) ---
+        // Retiramos acentos das respostas para facilitar o cruzamento na grade
+        const database = [
+            { answer: "PROMPT", question: "Engenharia de _____ é o processo de escrever instruções para obter respostas de alta qualidade do modelo." },
+            { answer: "TEMPERATURA", question: "Parâmetro que controla o grau de aleatoriedade na seleção de tokens. No Gemini 3, recomenda-se 1.0." },
+            { answer: "CONTEXTO", question: "Engenharia de _____ é a evolução da eng. de prompt, focada em curar o conjunto de tokens disponíveis ao LLM (Anthropic)." },
+            { answer: "XML", question: "Tipo de tag (<tag></tag>) altamente recomendada para estruturar seções em prompts complexos." },
+            { answer: "COMPACTACAO", question: "Técnica de resumir o histórico de uma conversa que se aproxima do limite da janela de contexto." },
+            { answer: "FEWSHOT", question: "Técnica de aprendizado onde se inclui alguns exemplos de entrada/saída no prompt (Inglês)." },
+            { answer: "DEVELOPER", question: "Na OpenAI (GPT-4o), o papel da mensagem que contém regras do sistema e lógica de negócios." },
+            { answer: "POLUICAO", question: "Incluir dados demais e irrelevantes no prompt causa a _____ de contexto, reduzindo a precisão do LLM." },
+            { answer: "ZEROSHOT", question: "Tipo de prompt direto, que não fornece nenhum exemplo prévio ao modelo (Inglês)." },
+            { answer: "FERRAMENTAS", question: "Recursos que agentes autônomos usam em loop para interagir com o ambiente e buscar novos dados." },
+            { answer: "JSON", question: "Formato de dados estruturados comumente gerado por LLMs por meio do recurso 'Structured Outputs'." },
+            { answer: "ALUCINACOES", question: "Inventar respostas incorretas. O 'Embasamento com Pesquisa Google' ajuda a evitar isso." },
+            { answer: "TOPP", question: "Parâmetro que muda a seleção de tokens limitando a soma de suas probabilidades." },
+            { answer: "RACIOCINIO", question: "Modelos de _____ geram uma cadeia de pensamento interna e performam melhor com instruções apenas de alto nível." },
+            { answer: "MARKDOWN", question: "Formatação textual (com # e listas) usada junto com XML para demarcar hierarquias lógicas no prompt." },
+            { answer: "CACHE", question: "Prompt _____ : recurso para economizar custos e latência reutilizando partes do contexto (OpenAI)." },
+            { answer: "SUBAGENTES", question: "Arquitetura onde tarefas complexas são divididas entre pequenos agentes com janelas de contexto limpas." },
+            { answer: "NOTAS", question: "A tomada estruturada de _____ permite ao agente registrar progresso fora da janela de contexto." },
+            { answer: "EMBASAMENTO", question: "Conectar o modelo a conteúdo da Web em tempo real para fatos recentes (Grounding)." },
+            { answer: "SUBSTITUTA", question: "Resposta _____ é retornada quando a solicitação aciona um filtro de segurança (ex: 'Sou um modelo de linguagem...')." },
+            { answer: "PROGRESSIVA", question: "A descoberta incremental de contexto por um agente autônomo é a divulgação _____." },
+            { answer: "SISTEMA", question: "As instruções do _____ dizem ao modelo como se comportar, priorizando restrições comportamentais essenciais." },
+            { answer: "TOKEN", question: "Unidade básica de texto processada por um LLM. Cerca de 100 deles correspondem a 60-80 palavras (Gemini)." },
+            { answer: "PENSAMENTO", question: "Modelos avançados geram um texto interno de _____ antes de responder para melhorar a precisão lógica." },
+            { answer: "ENCADEAR", question: "Estratégia para dividir tarefas complexas: transforme cada etapa num comando e deve-se _____ os comandos." },
+            { answer: "ATENCAO", question: "Tal como os humanos, os LLMs têm um orçamento de _____ que se esgota ao analisar grandes volumes de texto." },
+            { answer: "TRANSFORMER", question: "Arquitetura base dos LLMs que permite que cada token se relacione com todos os outros no contexto." },
+            { answer: "JANELA", question: "O limite máximo de memória e informações que um modelo pode considerar de uma vez é a _____ de contexto." },
+            { answer: "RECUPERACAO", question: "A técnica RAG significa Geração Aumentada por _____ (tradução de Retrieval), ligando o modelo a dados externos." },
+            { answer: "ESQUEMA", question: "O recurso Structured Outputs (Saídas Estruturadas) garante que o modelo devolva dados fiéis a um _____ JSON específico." },
+            { answer: "SENIOR", question: "Um modelo de raciocínio atua como um colega de trabalho _____, precisando apenas de metas de alto nível para agir." },
+            { answer: "CODIGO", question: "O Gemini possui uma ferramenta de execução de _____ que permite gerar e correr scripts Python para cálculos." }
+        ];
+
+        // --- VARIÁVEIS DE ESTADO DO JOGO ---
+        let score = 0;
+        let currentQuestionIndex = 0;
+        let correctCount = 0;
+        let wrongCount = 0;
+        let gameWords = []; // Palavras que conseguiram entrar na cruzadinha atual
+        let grid = [];
+        let chartInstance = null;
+
+        const GRID_SIZE = 25; // Tamanho virtual do grid aumentado para suportar mapas maiores
+
+        // Elementos DOM
+        const elQuestionText = document.getElementById('questionText');
+        const elLetterCount = document.getElementById('letterCount');
+        const elQuestionCounter = document.getElementById('questionCounter');
+        const elAnswerInput = document.getElementById('answerInput');
+        const elScore = document.getElementById('scoreDisplay');
+        const elScoreMob = document.getElementById('scoreDisplayMobile');
+        const elGrid = document.getElementById('crosswordGrid');
+        
+        // --- GERADOR PROCEDURAL DE PALAVRAS CRUZADAS ---
+        
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // Tenta encaixar palavras em uma grade vazia
+        function generateCrossword() {
+            grid = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
+            gameWords = [];
+            
+            // Embaralha o banco de dados original para sempre ter um jogo novo
+            let pool = shuffle([...database]);
+            
+            // Coloca a 1ª palavra no meio
+            if(pool.length > 0) {
+                let firstWord = pool.shift();
+                let startCol = Math.floor((GRID_SIZE - firstWord.answer.length) / 2);
+                let startRow = Math.floor(GRID_SIZE / 2);
+                placeWord(firstWord, startRow, startCol, 'H');
+            }
+
+            // Tenta encaixar as outras
+            for (let i = 0; i < pool.length; i++) {
+                let item = pool[i];
+                let placed = false;
+
+                // Para cada letra da palavra a ser inserida
+                for (let j = 0; j < item.answer.length; j++) {
+                    let char = item.answer[j];
+                    
+                    // Procura esta letra no grid atual
+                    for (let r = 0; r < GRID_SIZE; r++) {
+                        for (let c = 0; c < GRID_SIZE; c++) {
+                            if (grid[r][c] && grid[r][c].char === char) {
+                                // Tenta cruzar
+                                let dir = grid[r][c].dir === 'H' ? 'V' : 'H';
+                                let newR = dir === 'V' ? r - j : r;
+                                let newC = dir === 'H' ? c - j : c;
+
+                                if (canPlaceWord(item.answer, newR, newC, dir)) {
+                                    placeWord(item, newR, newC, dir);
+                                    placed = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if(placed) break;
+                    }
+                    if(placed) break;
+                }
+                
+                // Limite de palavras para não ficar um mapa infinito (ideal 10 a 15 questões ativas por vez)
+                if (gameWords.length >= 15) break; 
+            }
+
+            // Embaralha a ordem das perguntas selecionadas para o jogo
+            gameWords = shuffle(gameWords);
+        }
+
+        function canPlaceWord(word, r, c, dir) {
+            if (dir === 'H' && c + word.length > GRID_SIZE) return false;
+            if (dir === 'V' && r + word.length > GRID_SIZE) return false;
+            if (r < 0 || c < 0) return false;
+
+            for (let i = 0; i < word.length; i++) {
+                let cr = dir === 'V' ? r + i : r;
+                let cc = dir === 'H' ? c + i : c;
+                
+                // Se a célula já tem letra, deve ser a mesma
+                if (grid[cr][cc] !== null && grid[cr][cc].char !== word[i]) return false;
+                
+                // Verifica adjacências (evitar que palavras fiquem coladas lado a lado)
+                if (grid[cr][cc] === null) {
+                    if (dir === 'H') {
+                        if (cr > 0 && grid[cr-1][cc] !== null) return false; // topo
+                        if (cr < GRID_SIZE-1 && grid[cr+1][cc] !== null) return false; // baixo
+                    } else {
+                        if (cc > 0 && grid[cr][cc-1] !== null) return false; // esq
+                        if (cc < GRID_SIZE-1 && grid[cr][cc+1] !== null) return false; // dir
+                    }
+                }
+            }
+            // Verifica pontas
+            if (dir === 'H') {
+                if (c > 0 && grid[r][c-1] !== null) return false;
+                if (c + word.length < GRID_SIZE && grid[r][c+word.length] !== null) return false;
+            } else {
+                if (r > 0 && grid[r-1][c] !== null) return false;
+                if (r + word.length < GRID_SIZE && grid[r+word.length][c] !== null) return false;
+            }
+            return true;
+        }
+
+        function placeWord(item, r, c, dir) {
+            item.r = r;
+            item.c = c;
+            item.dir = dir;
+            item.number = gameWords.length + 1;
+            
+            for (let i = 0; i < item.answer.length; i++) {
+                let cr = dir === 'V' ? r + i : r;
+                let cc = dir === 'H' ? c + i : c;
+                
+                if(grid[cr][cc] === null) {
+                    grid[cr][cc] = { char: item.answer[i], dir: dir, number: i === 0 ? item.number : null };
+                } else if(i===0) {
+                    // Se cruzou no início, preserva o numero anterior, adiciona o novo visualmente depois
+                    grid[cr][cc].number2 = item.number;
+                }
+            }
+            gameWords.push(item);
+        }
+
+        // --- RENDERIZAÇÃO DA INTERFACE ---
+
+        function drawGrid() {
+            elGrid.innerHTML = '';
+            
+            // Encontrar os limites da matriz para recortar o excesso de espaços vazios
+            let minR = GRID_SIZE, maxR = 0, minC = GRID_SIZE, maxC = 0;
+            for(let r=0; r<GRID_SIZE; r++){
+                for(let c=0; c<GRID_SIZE; c++){
+                    if(grid[r][c]){
+                        if(r < minR) minR = r;
+                        if(r > maxR) maxR = r;
+                        if(c < minC) minC = c;
+                        if(c > maxC) maxC = c;
+                    }
+                }
+            }
+            
+            // Se o gerador falhou completamente
+            if(minR > maxR) return;
+
+            let rows = maxR - minR + 1;
+            let cols = maxC - minC + 1;
+            
+            elGrid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+            elGrid.style.gridTemplateRows = `repeat(${rows}, minmax(0, 1fr))`;
+
+            for (let r = minR; r <= maxR; r++) {
+                for (let c = minC; c <= maxC; c++) {
+                    const cellDiv = document.createElement('div');
+                    let cellData = grid[r][c];
+                    
+                    if (cellData) {
+                        cellDiv.className = 'cell';
+                        cellDiv.id = `cell-${r}-${c}`;
+                        // Esconde a letra inicialmente
+                        cellDiv.dataset.char = cellData.char; 
+                        
+                        // Numero no cantinho
+                        if(cellData.number || cellData.number2) {
+                            let numStr = cellData.number || "";
+                            if(cellData.number2) numStr += (numStr ? "/" : "") + cellData.number2;
+                            cellDiv.innerHTML = `<span class="cell-number">${numStr}</span>`;
+                        }
+                    } else {
+                        cellDiv.className = 'cell empty';
+                    }
+                    elGrid.appendChild(cellDiv);
+                }
+            }
+        }
+
+        function loadQuestion() {
+            if (currentQuestionIndex >= gameWords.length) {
+                showEndScreen();
+                return;
+            }
+            
+            let currentItem = gameWords[currentQuestionIndex];
+            elQuestionCounter.innerText = `Questão ${currentQuestionIndex + 1} de ${gameWords.length}`;
+            elQuestionText.innerText = currentItem.question;
+            elLetterCount.innerText = currentItem.answer.length;
+            elAnswerInput.value = '';
+            elAnswerInput.focus();
+        }
+
+        // --- LÓGICA DE VERIFICAÇÃO ---
+
+        document.getElementById('answerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            let userAnswer = elAnswerInput.value.trim().toUpperCase();
+            // Remove acentos da resposta do usuário para checar com o banco
+            userAnswer = userAnswer.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            
+            let currentItem = gameWords[currentQuestionIndex];
+
+            if (userAnswer === currentItem.answer) {
+                correctCount++;
+                score += 10;
+                revealWordOnGrid(currentItem);
+                showFeedback(true, "Correto!", `A palavra era ${currentItem.answer}. Você ganhou +10 pontos.`);
+            } else {
+                wrongCount++;
+                showFeedback(false, "Incorreto!", `A resposta certa era ${currentItem.answer}.`);
+            }
+            
+            updateScoreUI();
+        });
+
+        function revealWordOnGrid(item) {
+            for (let i = 0; i < item.answer.length; i++) {
+                let cr = item.dir === 'V' ? item.r + i : item.r;
+                let cc = item.dir === 'H' ? item.c + i : item.c;
+                let cellDiv = document.getElementById(`cell-${cr}-${cc}`);
+                if(cellDiv && !cellDiv.classList.contains('revealed')) {
+                    cellDiv.classList.add('revealed');
+                    cellDiv.innerHTML += item.answer[i]; // Mostra a letra
+                }
+            }
+        }
+
+        function updateScoreUI() {
+            elScore.innerText = score;
+            elScoreMob.innerText = score;
+        }
+
+        // --- FEEDBACK E NAVEGAÇÃO ---
+
+        const modal = document.getElementById('feedbackModal');
+        const modalIcon = document.getElementById('feedbackIcon');
+        const modalTitle = document.getElementById('feedbackTitle');
+        const modalMessage = document.getElementById('feedbackMessage');
+        const nextBtn = document.getElementById('nextBtn');
+
+        function showFeedback(isCorrect, title, message) {
+            modal.classList.remove('hidden');
+            modalIcon.innerText = isCorrect ? "🤩" : "😓";
+            modalTitle.innerText = title;
+            modalTitle.className = `text-2xl font-bold mb-2 ${isCorrect ? 'text-green-600' : 'text-red-600'}`;
+            modalMessage.innerText = message;
+        }
+
+        nextBtn.addEventListener('click', () => {
+            modal.classList.add('hidden');
+            currentQuestionIndex++;
+            loadQuestion();
+        });
+
+        // --- TELA FINAL E GRÁFICO ---
+
+        function showEndScreen() {
+            document.getElementById('gameScreen').classList.add('hidden');
+            const endScreen = document.getElementById('endScreen');
+            endScreen.classList.remove('hidden');
+
+            const total = correctCount + wrongCount;
+            const percentage = Math.round((correctCount / total) * 100);
+            
+            const titleEl = document.getElementById('endTitle');
+            const msgEl = document.getElementById('endMessage');
+            const emojiEl = document.getElementById('endEmoji');
+
+            if (percentage >= 80) {
+                emojiEl.innerText = "🏆🚀";
+                titleEl.innerText = "Parabéns, Futuro Mestre!";
+                titleEl.className = "text-3xl font-bold text-green-600 mb-2";
+                msgEl.innerText = `Você atingiu a meta em: ${percentage}%! Dominou a Engenharia de Contexto e Prompt!`;
+            } else {
+                emojiEl.innerText = "📚💡";
+                titleEl.innerText = "Não foi dessa vez...";
+                titleEl.className = "text-3xl font-bold text-red-600 mb-2";
+                msgEl.innerText = `Seu rendimento foi de ${percentage}%. A meta é igual ou maior que 80%. Tente novamente e melhore suas habilidades!`;
+            }
+
+            renderChart(percentage, 100 - percentage);
+        }
+
+        function renderChart(correctPct, wrongPct) {
+            const ctx = document.getElementById('resultsChart').getContext('2d');
+            
+            // Destroi gráfico anterior se houver
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Respostas Corretas', 'Respostas Erradas'],
+                    datasets: [{
+                        label: '% de Desempenho',
+                        data: [correctPct, wrongPct],
+                        backgroundColor: [
+                            'rgba(34, 197, 94, 0.8)', // Green
+                            'rgba(239, 68, 68, 0.8)'  // Red
+                        ],
+                        borderColor: [
+                            'rgb(21, 128, 61)',
+                            'rgb(185, 28, 28)'
+                        ],
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { callback: function(value) { return value + "%" } }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // --- INICIALIZAÇÃO DO JOGO ---
+
+        function initGame() {
+            // Reseta variáveis
+            score = 0;
+            currentQuestionIndex = 0;
+            correctCount = 0;
+            wrongCount = 0;
+            updateScoreUI();
+            
+            // Manipulação de Telas
+            document.getElementById('endScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            document.getElementById('gameScreen').classList.add('flex'); // Volta o display flex
+            
+            // Gera mapa procedualmente
+            generateCrossword();
+            drawGrid();
+            
+            // Carrega a primeira pergunta
+            loadQuestion();
+        }
+
+        // Inicia o jogo ao carregar a página
+        window.onload = initGame;
+
+    </script>
+</body>
+</html>
